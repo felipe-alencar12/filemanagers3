@@ -34,6 +34,12 @@ public class GenerateFileServiceImpl implements GenerateFileService {
         ResponseEntity<PokemonData> response = getPokemonData();
         var pokeData = response.getBody();
 
+        generateExcelFile(pokeData);
+
+        return null;
+    }
+
+    public void generateExcelFile(PokemonData pokemonData){
         Workbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet("Pokemon Data");
 
@@ -43,8 +49,8 @@ public class GenerateFileServiceImpl implements GenerateFileService {
 
         Row dataRow = sheet.createRow(1);
 
-        dataRow.createCell(0).setCellValue(pokeData.id);
-        dataRow.createCell(1).setCellValue(pokeData.name);
+        dataRow.createCell(0).setCellValue(pokemonData.id);
+        dataRow.createCell(1).setCellValue(pokemonData.name);
 
         try (FileOutputStream fileOut = new FileOutputStream("pokemon_data.xlsx")) {
             workbook.write(fileOut);
@@ -52,8 +58,6 @@ public class GenerateFileServiceImpl implements GenerateFileService {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        return null;
     }
 
     public ResponseEntity<PokemonData> getPokemonData(){
