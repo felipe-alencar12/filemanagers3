@@ -1,5 +1,7 @@
 package com.studyings3.filemanagers3.serviceImpl;
 
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.studyings3.filemanagers3.model.response.GenerateFileResponse;
 import com.studyings3.filemanagers3.model.response.PokemonData;
 import com.studyings3.filemanagers3.service.GenerateFileService;
@@ -16,8 +18,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 @Service
 @RequiredArgsConstructor
@@ -25,8 +29,13 @@ public class GenerateFileServiceImpl implements GenerateFileService {
 
     private final RestTemplate restTemplate;
 
+    private final AmazonS3 amazonS3;
+
     @Value("${poke.api.url}")
     private String url;
+
+    @Value("${aws.s3.bucketName}")
+    private String bucketName;
     @Override
     public ResponseEntity<GenerateFileResponse> generateFile() {
         System.out.println("Teste 1");
@@ -34,12 +43,30 @@ public class GenerateFileServiceImpl implements GenerateFileService {
         ResponseEntity<PokemonData> response = getPokemonData();
         var pokeData = response.getBody();
 
-        generateExcelFile(pokeData);
+        byte[] excelData = generateExcelFile(pokeData);
+
+        uploadFileToS3(excelData);
 
         return null;
     }
 
-    public void generateExcelFile(PokemonData pokemonData){
+    public void uploadFileToS3(byte[] fileData) {
+        if (fileData != null) {
+            try {
+                String fileName = "pokemon_data.xlsx";
+                InputStream inputStream = new java.io.ByteArrayInputStream(fileData);
+
+                // Upload the file to S3
+                amazonS3.putObject(new PutObjectRequest(bucketName, fileName, inputStream, null));
+
+                System.out.println("File uploaded successfully to S3!");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public byte[] generateExcelFile(PokemonData pokemonData){
         Workbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet("Pokemon Data");
 
@@ -52,11 +79,12 @@ public class GenerateFileServiceImpl implements GenerateFileService {
         dataRow.createCell(0).setCellValue(pokemonData.id);
         dataRow.createCell(1).setCellValue(pokemonData.name);
 
-        try (FileOutputStream fileOut = new FileOutputStream("pokemon_data.xlsx")) {
-            workbook.write(fileOut);
-            System.out.println("Excel file created successfully!");
+        try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()) {
+            workbook.write(byteArrayOutputStream);
+            return byteArrayOutputStream.toByteArray();
         } catch (IOException e) {
             e.printStackTrace();
+            return null;
         }
     }
 
