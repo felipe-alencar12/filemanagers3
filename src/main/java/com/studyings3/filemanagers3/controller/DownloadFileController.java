@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @AllArgsConstructor
 @RequestMapping("/v1/download")
@@ -19,5 +21,11 @@ public class DownloadFileController implements DownloadFile {
     @RequestMapping("/file")
     public ResponseEntity<String> downloadFileWithPresignedUrl(String fileKey) {
         return downloadFileService.downloadFile(fileKey);
+    }
+
+    @Override
+    @RequestMapping("/list")
+    public ResponseEntity<List<String>> listFiles(){
+        return downloadFileService.listFiles();
     }
 }
