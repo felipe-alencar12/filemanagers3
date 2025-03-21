@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 @Component
 public interface GenerateFileService{
 
-    ResponseEntity<GenerateFileResponse> generateFile();
+    ResponseEntity<GenerateFileResponse> generateFile(String pokemonName);
 
     
 }

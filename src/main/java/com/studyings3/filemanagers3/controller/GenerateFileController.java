@@ -17,8 +17,8 @@ public class GenerateFileController implements GenerateFile {
 
     @Override
     @RequestMapping("/file")
-    public ResponseEntity<GenerateFileResponse> generateFile() {
-        generateFileService.generateFile();
+    public ResponseEntity<GenerateFileResponse> generateFile(String pokemonName) {
+        generateFileService.generateFile(pokemonName);
         return null;
     }
 }

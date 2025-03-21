@@ -37,10 +37,10 @@ public class GenerateFileServiceImpl implements GenerateFileService {
     @Value("${aws.s3.bucketName}")
     private String bucketName;
     @Override
-    public ResponseEntity<GenerateFileResponse> generateFile() {
+    public ResponseEntity<GenerateFileResponse> generateFile(String pokemonName) {
         System.out.println("Teste 1");
 
-        ResponseEntity<PokemonData> response = getPokemonData();
+        ResponseEntity<PokemonData> response = getPokemonData(pokemonName);
         var pokeData = response.getBody();
 
         byte[] excelData = generateExcelFile(pokeData);
@@ -88,16 +88,30 @@ public class GenerateFileServiceImpl implements GenerateFileService {
         }
     }
 
-    public ResponseEntity<PokemonData> getPokemonData(){
+    public ResponseEntity<PokemonData> getPokemonData(String pokemonName) {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Accept", "application/json");
 
         HttpEntity<String> entity = new HttpEntity<>(headers);
-        return restTemplate.exchange(
-                url+"/pokemon/ditto",
-                HttpMethod.GET,
-                entity,
-                PokemonData.class
-        );
+
+        try {
+            ResponseEntity<PokemonData> response = restTemplate.exchange(
+                    url + "/pokemon/" + pokemonName,
+                    HttpMethod.GET,
+                    entity,
+                    PokemonData.class
+            );
+
+            // Check if the response status is OK (200) and body is not null
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                return response;
+            } else {
+                System.err.println("Error: Received non-success status code " + response.getStatusCode());
+                return ResponseEntity.status(response.getStatusCode()).build();
+            }
+        } catch (Exception e) {
+            System.err.println("Error fetching Pokémon data: " + e.getMessage());
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }
