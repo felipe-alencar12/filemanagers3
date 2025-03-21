@@ -11,17 +11,11 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.ByteArrayOutputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 
 @Service
 @RequiredArgsConstructor
@@ -45,26 +39,36 @@ public class GenerateFileServiceImpl implements GenerateFileService {
 
         byte[] excelData = generateExcelFile(pokeData);
 
-        uploadFileToS3(excelData);
-
-        return null;
+        return uploadFileToS3(excelData);
     }
 
-    public void uploadFileToS3(byte[] fileData) {
-        if (fileData != null) {
-            try {
-                String fileName = "pokemon_data.xlsx";
-                InputStream inputStream = new java.io.ByteArrayInputStream(fileData);
+    public ResponseEntity<GenerateFileResponse> uploadFileToS3(byte[] fileData) {
+        if (fileData == null) {
+            return ResponseEntity.badRequest().body(new GenerateFileResponse("Failed", "No file data", null));
+        }
 
-                // Upload the file to S3
-                amazonS3.putObject(new PutObjectRequest(bucketName, fileName, inputStream, null));
+        try {
+            String fileName = "pokemon_data.xlsx";
+            InputStream inputStream = new ByteArrayInputStream(fileData);
 
-                System.out.println("File uploaded successfully to S3!");
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            // Upload the file to S3
+            amazonS3.putObject(new PutObjectRequest(bucketName, fileName, inputStream, null));
+
+            System.out.println("File uploaded successfully to S3!");
+
+            // Build response
+            GenerateFileResponse generateFileResponse = new GenerateFileResponse();
+            generateFileResponse.setStatus("Uploaded");
+            generateFileResponse.setFileName(fileName);
+            generateFileResponse.setFileKey(fileName);
+
+            return ResponseEntity.ok(generateFileResponse);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(new GenerateFileResponse("Failed", "Error uploading file", null));
         }
     }
+
 
     public byte[] generateExcelFile(PokemonData pokemonData){
         Workbook workbook = new XSSFWorkbook();
